@@ -3,6 +3,9 @@ const http = require("http");
 const { Server } = require("socket.io");
 
 const app = express();
+app.get("/", (req, res) => {
+  res.send("Mind Mayhem server is live 🚀");
+});
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
