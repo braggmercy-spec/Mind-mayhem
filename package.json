@@ -8,11 +8,7 @@
   },
   "dependencies": {
     "express": "^4.18.2",
-<<<<<<< HEAD
-    "http": "^0.0.1-security"
-=======
     "http": "^0.0.1-security",
->>>>>>> b3ce8b038ed2f6f84e0a31890fd30e6004ab1a0d
     "socket.io": "^4.7.2"
   }
 }
