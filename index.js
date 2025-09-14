@@ -160,4 +160,74 @@ io.on("connection", (socket) => {
     startRound(roomId);
   });
 
-  socket.on("submit_cl
+  socket.on("submit_clue", ({ roomId, clue }) => {
+    const room = rooms[roomId];
+    if (!room) return;
+    room.rounds[room.round - 1].clues.push({ playerId: socket.id, clue });
+    io.to(roomId).emit("round_update", room.rounds[room.round - 1]);
+  });
+
+  socket.on("submit_imposter_word", ({ roomId, word }) => {
+    const room = rooms[roomId];
+    if (!room) return;
+    room.rounds[room.round - 1].imposterWord = word;
+
+    if (word.toLowerCase() === room.realWord.toLowerCase()) {
+      io.to(roomId).emit("game_over", { winners: ["imposter"], reason: "Imposter guessed the word!" });
+    } else {
+      io.to(roomId).emit("round_update", room.rounds[room.round - 1]);
+    }
+  });
+
+  socket.on("peacekeeper_query", ({ roomId, targetId, question }) => {
+    const room = rooms[roomId];
+    if (!room) return;
+    room.peacekeeperData = { question, answer: null, asker: socket.id, revealed: false };
+    io.to(targetId).emit("peacekeeper_prompt", { question });
+  });
+
+  socket.on("peacekeeper_response", ({ roomId, answer }) => {
+    const room = rooms[roomId];
+    if (!room || !room.peacekeeperData) return;
+    room.peacekeeperData.answer = answer;
+    io.to(room.peacekeeperData.asker).emit("peacekeeper_received", { answer });
+  });
+
+  socket.on("peacekeeper_reveal", ({ roomId }) => {
+    const room = rooms[roomId];
+    if (!room || !room.peacekeeperData) return;
+    room.peacekeeperData.revealed = true;
+    io.to(roomId).emit("peacekeeper_reveal", {
+      question: room.peacekeeperData.question,
+      answer: room.peacekeeperData.answer
+    });
+  });
+
+  socket.on("mayhem_activate", ({ roomId, newWord }) => {
+    const room = rooms[roomId];
+    if (!room || room.mayhemUsed) return;
+    room.mayhemUsed = true;
+    room.realWord = newWord;
+    io.to(roomId).emit("word_swapped", { newWord });
+    io.to(roomId).emit("announcement", "Mayhem has swapped the word!");
+  });
+
+  socket.on("vote", ({ roomId, targetId }) => {
+    const room = rooms[roomId];
+    if (!room) return;
+    room.votes[socket.id] = targetId;
+  });
+
+  socket.on("disconnect", () => {
+    console.log("Player disconnected:", socket.id);
+    for (const roomId in rooms) {
+      rooms[roomId].players = rooms[roomId].players.filter(p => p.id !== socket.id);
+      io.to(roomId).emit("room_update", rooms[roomId]);
+    }
+  });
+});
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
