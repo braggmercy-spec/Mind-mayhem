@@ -1,3 +1,21 @@
+Absolutely, Mercy! Here's your fully rewritten `server/index.js` that includes everything your **Mind Mayhem** game needs:
+
+- ✅ Room creation and joining  
+- ✅ Category-based word selection  
+- ✅ Random role assignment per player  
+- ✅ Real/fake word distribution  
+- ✅ Phase-based round progression with timers  
+- ✅ Clue submission and imposter guess  
+- ✅ Peacekeeper query and reveal  
+- ✅ Mayhem word swap  
+- ✅ Voting and win condition checks  
+- ✅ Game over logic
+
+---
+
+### 🧠 Copy-Paste Ready `index.js`
+
+```js
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -17,6 +35,12 @@ const io = new Server(server, {
 
 let rooms = {};
 
+const wordBank = {
+  food: ['banana', 'apple', 'carrot', 'pizza', 'grape'],
+  animals: ['lion', 'zebra', 'penguin', 'koala', 'elephant'],
+  objects: ['chair', 'phone', 'book', 'lamp', 'mirror']
+};
+
 function startTimer(roomId, phase, duration, onEnd) {
   const room = rooms[roomId];
   if (!room) return;
@@ -29,11 +53,10 @@ function startRound(roomId) {
   const room = rooms[roomId];
   if (!room) return;
 
-  room.rounds.push({ clues: [], imposterWord: null });
   room.round += 1;
+  room.rounds.push({ clues: [], imposterWord: null });
   room.votes = {};
   room.peacekeeperData = {};
-  room.mayhemUsed = false;
 
   startTimer(roomId, "clue_submission", 30, () => {
     startTimer(roomId, "peacekeeper_query", 15, () => {
@@ -125,30 +148,36 @@ io.on("connection", (socket) => {
     io.to(roomId).emit("room_update", room);
   });
 
-  socket.on("start_game", ({ roomId, realWord, fakeWord }) => {
+  socket.on("start_game", ({ roomId, category }) => {
     const room = rooms[roomId];
     if (!room) return;
+
+    const words = wordBank[category] || wordBank.food;
+    const realWord = words[Math.floor(Math.random() * words.length)];
+    const fakeWord = words[Math.floor(Math.random() * words.length)];
 
     room.realWord = realWord;
     room.fakeWord = fakeWord;
     room.state = "playing";
+    room.round = 0;
+    room.rounds = [];
+    room.votes = {};
+    room.peacekeeperData = {};
+    room.mayhemUsed = false;
 
-    // Assign roles
-    const normalPlayers = room.players.filter(p => p.role === "normal");
-    if (normalPlayers.length > 0)
-      normalPlayers[Math.floor(Math.random() * normalPlayers.length)].role = "peacekeeper";
-    if (normalPlayers.length > 1)
-      normalPlayers[Math.floor(Math.random() * normalPlayers.length)].role = "mayhem";
-    if (normalPlayers.length > 2)
-      normalPlayers[Math.floor(Math.random() * normalPlayers.length)].role = "fibber";
-    if (normalPlayers.length > 3)
-      normalPlayers[Math.floor(Math.random() * normalPlayers.length)].role = "imposter";
-
-    room.players.forEach(p => {
-      io.to(p.id).emit("role_assignment", { role: p.role });
+    const shuffled = [...room.players].sort(() => Math.random() - 0.5);
+    shuffled.forEach((p, i) => {
+      p.role = i === 0 ? 'imposter'
+             : i === 1 ? 'peacekeeper'
+             : i === 2 ? 'mayhem'
+             : i === 3 ? 'fibber'
+             : 'normal';
+      p.isAlive = true;
+      const word = p.role === 'imposter' ? fakeWord : realWord;
+      io.to(p.id).emit('role_assignment', { role: p.role, word });
     });
 
-    io.to(roomId).emit("game_started", { message: "Game has begun!" });
+    io.to(roomId).emit("game_started", { message: `Game started with category: ${category}` });
     startRound(roomId);
   });
 
@@ -219,7 +248,4 @@ io.on("connection", (socket) => {
   });
 });
 
-const PORT = process.env.PORT || 3001;
-server.listen(PORT, () => {
-  console.log(`Mind Mayhem server running on port ${PORT}`);
-});
+const PORT = process.env
