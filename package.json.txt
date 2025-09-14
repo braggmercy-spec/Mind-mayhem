@@ -2,7 +2,7 @@
   "name": "mind-mayhem-server",
   "version": "1.0.0",
   "description": "Mind Mayhem multiplayer game server",
-  "main": "index.js",
+  "main": "node index.js",
   "scripts": {
     "start": "node index.js"
   },
