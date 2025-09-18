@@ -10,11 +10,17 @@ function createRoom(roomId, hostId, isPublic = false) {
     players: [],
     round: 0,
     state: "waiting",
-    realWord: null,
-    fakeWord: null,
-    rounds: [],
-    votes: {},
-    peacekeeperData: {},
+    word: null,               // ✅ Word for current round
+    category: null,           // ✅ Category for current round
+    clues: [],                // ✅ Clues submitted this round
+    usedClues: [],            // ✅ All clues used across rounds
+    usedWords: [],            // ✅ All prompt words used across rounds
+    mayhemUsed: false,        // ✅ Tracks if Mayhem ability was used
+    realWord: null,           // Optional legacy field
+    fakeWord: null,           // Optional legacy field
+    rounds: [],               // ✅ Round history
+    votes: {},                // ✅ Voting data
+    peacekeeperData: {},      // ✅ Secret question/answer tracking
     settings: { debug_mode: false },
     isPublic,
     lastActive: Date.now()
